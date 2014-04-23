@@ -4,19 +4,26 @@ import java.util.ArrayList;
 import java.util.List;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 public class ImageSearchAdapter extends BaseAdapter {
+	private static final String TAG = "ImageSearchAdapter";
 	
 	private List<HeaderInfo> data;
 	private Context mContext;
+	private Bitmap mProxyBitmap;
 	
 	public ImageSearchAdapter(Context context) {
 		mContext = context;
+		mProxyBitmap = BitmapFactory.decodeResource(context.getResources(), R.drawable.image_stub);
 	}
 
 	public void updateData(List<HeaderInfo> data) {
@@ -50,16 +57,21 @@ public class ImageSearchAdapter extends BaseAdapter {
 
 	@Override
 	public View getView(int position, View convertView, ViewGroup parent) {
+		Log.d(TAG, "in getView, postion=" + position);
 		View view = convertView;
 		if (view == null) {
 			view = LayoutInflater.from(mContext).inflate(R.layout.list_item, null);
 		}
 		
 		TextView titleView = (TextView) view.findViewById(R.id.textView1);
-//		ImageView imageView = (ImageView) view.findViewById(R.id.imageView1);
+		ImageView imageView = (ImageView) view.findViewById(R.id.imageView1);
+		
 		HeaderInfo imageInfo = this.data.get(position);
 		titleView.setText(imageInfo.title);
-//		imageView.setImageBitmap(bm);
+		
+		ProxyDrawable drawable = new ProxyDrawable(mContext.getResources(), mProxyBitmap, imageView);
+		imageView.setImageDrawable(drawable);
+		drawable.load(imageInfo.url);
 
 		return view;
 	}

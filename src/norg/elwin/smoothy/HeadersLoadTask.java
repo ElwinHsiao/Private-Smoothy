@@ -77,15 +77,15 @@ public class HeadersLoadTask extends AsyncTask<String, HeaderInfo, List<HeaderIn
 							String name = reader.nextName();
 							if (name.equals("thumbURL")) {
 								headerInfo.url = reader.nextString();
-								Log.d(TAG, "url=" + headerInfo.url);
+//								Log.d(TAG, "url=" + headerInfo.url);
 							} else if (name.equals("fromPageTitleEnc")) {
 								headerInfo.title = i + ". " + reader.nextString();
-								Log.d(TAG, "title=" + headerInfo.title);
+//								Log.d(TAG, "title=" + headerInfo.title);
 							} else {
 								reader.skipValue();
 							}
 						}
-						Log.d(TAG, headerInfo.toString());
+//						Log.d(TAG, headerInfo.toString());
 						publishProgress(headerInfo);
 						reader.endObject();
 						++i;

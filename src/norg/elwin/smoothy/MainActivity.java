@@ -38,11 +38,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
 	@Override
 	public void onClick(View v) {
 		Button button = (Button) v;
-		String keyWord = button.getText().toString();
-		Log.d(TAG, "in onClick, button text=" + keyWord);
+		String keyword = button.getText().toString();
+		Log.d(TAG, "in onClick, button text=" + keyword);
 		
 		inflateForFirstTime();
-		startTransform(keyWord);
+		startTransform(keyword);
 	}
 
 	private boolean isInflated;		// static local
