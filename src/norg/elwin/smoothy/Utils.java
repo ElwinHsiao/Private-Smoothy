@@ -40,7 +40,7 @@ public class Utils {
 	    getRequest.addHeader("Referer", "http://image.baidu.com/");
 
 	    try {
-//	    	Log.d(TAG, "in downloadBitmapBaidu,  url=" + url);
+	    	Utils.logd(TAG, "in downloadBitmapBaidu,  url=**" + url.substring(url.length()-10));
 	        HttpResponse response = client.execute(getRequest);
 	        final int statusCode = response.getStatusLine().getStatusCode();
 	        if (statusCode != HttpStatus.SC_OK) { 
@@ -86,5 +86,11 @@ public class Utils {
 //		}
 //		
 //		return null;
+	}
+	
+	public static void logd(String tag, String msg) {
+		if (BuildConfig.DEBUG) {
+			Log.d("Smoothy-"+tag, msg);
+		}
 	}
 }

@@ -57,7 +57,7 @@ public class ImageSearchAdapter extends BaseAdapter {
 
 	@Override
 	public View getView(int position, View convertView, ViewGroup parent) {
-		Log.d(TAG, "in getView, postion=" + position);
+		Utils.logd(TAG, "in getView, postion=" + position);
 		View view = convertView;
 		if (view == null) {
 			view = LayoutInflater.from(mContext).inflate(R.layout.list_item, null);
@@ -69,11 +69,15 @@ public class ImageSearchAdapter extends BaseAdapter {
 		HeaderInfo imageInfo = this.data.get(position);
 		titleView.setText(imageInfo.title);
 		
-		ProxyDrawable drawable = new ProxyDrawable(mContext.getResources(), mProxyBitmap, imageView);
-		imageView.setImageDrawable(drawable);
-		drawable.load(imageInfo.url);
+		loadImage(imageView, imageInfo.url);
 
 		return view;
+	}
+
+	private void loadImage(ImageView imageView, String url) {
+		ProxyDrawable drawable = new ProxyDrawable(mContext.getResources(), mProxyBitmap, imageView);
+		imageView.setImageDrawable(drawable);
+		drawable.load(url);
 	}
 	
 }

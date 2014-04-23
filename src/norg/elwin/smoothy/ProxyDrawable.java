@@ -2,54 +2,81 @@ package norg.elwin.smoothy;
 
 import java.lang.ref.WeakReference;
 
+import junit.framework.Assert;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
-import android.graphics.Bitmap.Config;
-import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
-import android.util.Log;
 import android.util.LruCache;
 import android.widget.ImageView;
 
 public class ProxyDrawable extends BitmapDrawable {
 	private static final String TAG = "ProxyDrawable";
 
-	private static LruCache<String, Bitmap> sLruCache;
-
 	private Context mContext;
+	private WorkerTask mWorkerTask;
 	private WeakReference<ImageView> mImageViewRef;
-	private static Bitmap PLACEHOLDER_BITMAP = Bitmap.createBitmap(1, 1, Config.RGB_565);
-;
 
+	private static LruCache<String, Bitmap> sLruCache = new LruCache<String, Bitmap>(1024*1024*5);;
 
 	public ProxyDrawable(Resources res, Bitmap bitmap, ImageView imageView) {
         super(res, bitmap);
         mImageViewRef = new WeakReference<ImageView>(imageView);
-        if (sLruCache == null) {
-        	sLruCache = new LruCache<String, Bitmap>(1024*1024*5);
-        }
     }
 
 	public void load(String url) {
 		if (url == null) {
 			return;
 		}
-		Bitmap bitmap = sLruCache.get(url);
+		Bitmap bitmap = getBitmapFromMemCache(url);
 		if (bitmap != null) {
-			if (bitmap == PLACEHOLDER_BITMAP) {
-				Log.i(TAG, "This url is being download: " + url);
-				return;
-			}
 			setImageDrawable(bitmap);	// using the cached object.
 			return;
 		}
 		
-		sLruCache.put(url, PLACEHOLDER_BITMAP);		// mark the this url being download.
-    	new WorkerTask().execute(url);
+		
+		cancelPreviousTask();
+    	mWorkerTask = new WorkerTask();
+    	mWorkerTask.execute(url);
     }
-    
+	
+	private void cancelPreviousTask() {
+		WorkerTask previousTask = retriveWorkTask();
+		if (previousTask != null) {
+			boolean result = previousTask.cancel(true);
+			Utils.logd(TAG, "in cancelPreviousTask: canceled success? " + result);
+		}
+	}
+
+	private WorkerTask retriveWorkTask() {
+		ImageView imageView = mImageViewRef.get();
+		//Assert.assertNotNull(imageView);
+		if (imageView != null) {
+			Drawable previousDrawable = imageView.getDrawable();
+			if (previousDrawable instanceof ProxyDrawable) {
+				return ((ProxyDrawable) previousDrawable).getWorkTask();
+			}
+		}
+		
+		return null;
+	}
+	
+	public WorkerTask getWorkTask() {
+		return mWorkerTask;
+	}
+	
+	private Bitmap getBitmapFromMemCache(String url) {
+		Bitmap bitmap = sLruCache.get(url);
+		Utils.logd(TAG, "Cache for url=**" + url.substring(url.length()-10) + " hit=" + (bitmap!=null));
+		return bitmap;
+	}
+
+	private void addBitmapToCache(String url, Bitmap result) {
+		sLruCache.put(url, result);
+	}
+	
     class WorkerTask extends AsyncTask<String, Integer, Bitmap> {
     	private String url;
     	
@@ -65,11 +92,10 @@ public class ProxyDrawable extends BitmapDrawable {
     	protected void onPostExecute(Bitmap result) {
     		if (result != null) {
     			setImageDrawable(result);
-    			sLruCache.put(url, result);
-    		} else {
-    			sLruCache.remove(url);	// remove the placeholder bitmap.
+    			addBitmapToCache(url, result);
     		}
     	}
+
     }
     
     private void setImageDrawable(Bitmap bitmap) {
