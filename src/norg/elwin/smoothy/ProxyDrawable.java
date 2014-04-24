@@ -37,7 +37,7 @@ public class ProxyDrawable extends BitmapDrawable {
 		}
 		
 		
-		cancelPreviousTask();
+//		cancelPreviousTask();
     	mWorkerTask = new WorkerTask();
     	mWorkerTask.execute(url);
     }
