@@ -1,12 +1,12 @@
 package norg.elwin.smoothy;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -70,14 +70,37 @@ public class ImageSearchAdapter extends BaseAdapter {
 		titleView.setText(imageInfo.title);
 		
 		loadImage(imageView, imageInfo.url);
+		
+//		/*test-mode*/computeTime();
 
 		return view;
 	}
+
 
 	private void loadImage(ImageView imageView, String url) {
 		ProxyDrawable drawable = new ProxyDrawable(mContext.getResources(), mProxyBitmap, imageView);
 		imageView.setImageDrawable(drawable);
 		drawable.load(url);
 	}
-	
+
+	/*test-mode*/private void computeTime() {
+		LinkedList<String> linkedList = new LinkedList<String>();
+		for (int i = 0; i < 50; ++i) {
+			linkedList.push("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"+i);
+		}
+		
+		long nanoTime1 = System.nanoTime();
+		
+		linkedList.remove("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"+1);
+		long nanoTime2 = System.nanoTime();
+		System.out.println(nanoTime2-nanoTime1+"");
+		
+		linkedList.addFirst("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"+1);
+		long nanoTime3 = System.nanoTime();
+		System.out.println(nanoTime3-nanoTime2+"");
+		
+//		for (int i = 0; i < linkedList.size(); ++i) {
+//			System.out.println(linkedList.get(i));
+//		}
+	}
 }
