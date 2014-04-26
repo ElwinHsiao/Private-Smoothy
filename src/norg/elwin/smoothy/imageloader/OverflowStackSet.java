@@ -2,6 +2,7 @@ package norg.elwin.smoothy.imageloader;
 
 import java.util.LinkedList;
 
+import norg.elwin.smoothy.Utils;
 import junit.framework.Assert;
 
 /**
@@ -15,6 +16,7 @@ import junit.framework.Assert;
  * @param <E>
  */
 class OverflowStackSet<E> {
+	private static final String TAG = "OverflowStackSet";
 	private LinkedList<E> innerList;
 	private int capacity;
 	
@@ -45,6 +47,7 @@ class OverflowStackSet<E> {
 
 		E overflowedItem = null;
 		boolean isContain = innerList.remove(item);
+		Utils.logd(TAG, "capacity=" + capacity + " currentSize=" + innerList.size() + " isContain=" + isContain);
 		if (!isContain && innerList.size() == capacity) {
 			overflowedItem = innerList.removeLast();
 		}

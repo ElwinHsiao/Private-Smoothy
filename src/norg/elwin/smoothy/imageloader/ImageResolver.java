@@ -46,7 +46,6 @@ public class ImageResolver {
 		imageView.setImageDrawable(getErrorDrawable());
 	}
 
-
 	private void addMapping(ImageView imageView, String url) {
 		ImageView otherImageView = mImageViewMap.getKey(url);
 		if (otherImageView != null && otherImageView != imageView) {
@@ -56,8 +55,8 @@ public class ImageResolver {
 		mImageViewMap.put(imageView, url);	// replace or add.
 	}
 	
-	private void delMapping(ImageView imageView) {
-		mImageViewMap.remove(imageView);
+	private void delMapping(String url) {
+		mImageViewMap.removeValue(url);
 	}
 	
 	private ImageView popImageView(String url) {
@@ -96,6 +95,7 @@ public class ImageResolver {
 		@Override
 		public void onCanceled(String url) {
 			Log.i(TAG, "load canceled for url: " + url);
+			delMapping(url);
 		}
 	};
 }

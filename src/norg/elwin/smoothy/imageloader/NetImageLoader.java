@@ -15,7 +15,7 @@ import android.util.Log;
  */
 public class NetImageLoader {
 	private static final int THREAD_POOL_SIZE = 1 + 5;		// one for dispatch request.
-	private static final int DEFAULT_QUEUE_SIZE = 10;
+	private static final int DEFAULT_QUEUE_SIZE = 2;
 	protected static final String TAG = null;
 	private ExecutorService mExecutor;
 	private OverflowStackSet<DownloadRequest> mQueue;

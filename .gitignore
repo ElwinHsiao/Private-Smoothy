@@ -1,6 +1,6 @@
 /.classpath
 /.project
 /.settings/
-/gen/
-/bin/
+gen/
+bin/
 !/bin/Smoothy.apk
