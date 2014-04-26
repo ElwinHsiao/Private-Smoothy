@@ -14,6 +14,7 @@ import android.util.Log;
  *
  */
 public class NetImageLoader {
+	private static final int THREAD_POOL_SIZE = 1 + 5;		// one for dispatch request.
 	private static final int DEFAULT_QUEUE_SIZE = 10;
 	protected static final String TAG = null;
 	private ExecutorService mExecutor;
@@ -21,18 +22,20 @@ public class NetImageLoader {
 	private boolean mIsStarted;
 
 	public NetImageLoader() {
-		mExecutor = Executors.newFixedThreadPool(3);
+		mExecutor = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
 		mQueue = new OverflowStackSet<DownloadRequest>(DEFAULT_QUEUE_SIZE);
 	}
 
-	public void enqueueRequest(String url, OnImageLoadListener listener) {
+	public void enqueueRequest(String url, OnDownLoadListener listener) {
 		startDispatchIfNeed();
 		
-		DownloadRequest overFlowedItem = mQueue.push(new DownloadRequest(url, listener));
-		if (overFlowedItem != null) {
-			overFlowedItem.listener.onCanceled(overFlowedItem.url);
+		synchronized (mQueue) {
+			DownloadRequest overFlowedItem = mQueue.push(new DownloadRequest(url, listener));
+			if (overFlowedItem != null) {
+				overFlowedItem.listener.onOverflowed(overFlowedItem.url);
+			}
+			mQueue.notify();
 		}
-		mQueue.notifyAll();
 	}
 	
 	/**
@@ -50,34 +53,47 @@ public class NetImageLoader {
 					DownloadRequest request = mQueue.pop();
 					if (request == null) {
 						try {
-							mQueue.wait();
+							synchronized (mQueue) {
+								mQueue.wait();
+							}
 							continue;
 						} catch (InterruptedException e) {
 							Log.w(TAG, "Dispatcher thread has been interupted: " + e);
 						};
 					}
 					
-					doDownload(request);
+					dispatchRequest(request);
 				}
 			}
 
-			private void doDownload(DownloadRequest request) {
-				Bitmap bitmap = Utils.downloadBitmapBaidu(request.url);
-				if (bitmap == null) {
-					request.listener.onError(request.url);
-				} else {
-					request.listener.onLoaded(request.url, new BitmapDrawable(bitmap));
-				}
-			}
+
 		});
 		mIsStarted = true;
 	}
+	
+	private void dispatchRequest(final DownloadRequest request) {
+		mExecutor.submit(new Runnable() {
+			@Override
+			public void run() {
+				doDownload(request);
+			}
+		});
+	}
 
+	private void doDownload(DownloadRequest request) {
+		Bitmap bitmap = Utils.downloadBitmapBaidu(request.url);
+		if (bitmap == null) {
+			request.listener.onError(request.url);
+		} else {
+			request.listener.onDownLoaded(request.url, bitmap);
+		}
+	}
+	
 	static class DownloadRequest {
 		String url;
-		OnImageLoadListener listener;
+		OnDownLoadListener listener;
 		
-		public DownloadRequest(String url, OnImageLoadListener listener) {
+		public DownloadRequest(String url, OnDownLoadListener listener) {
 			this.url = url;
 			this.listener = listener;
 		}
@@ -93,5 +109,31 @@ public class NetImageLoader {
 			return url.hashCode();
 		}
 		
+	}
+	
+	/**
+	 * This listener use for notice the caller about the image loading message. 
+	 * @author Elwin
+	 *
+	 */
+	public interface OnDownLoadListener {
+		/**
+		 * When the image downloaded.
+		 * @param url
+		 * @param bitmapDrawable
+		 */
+		void onDownLoaded(String url, Bitmap bitmap);
+		
+		/**
+		 * This load request was canceled for some reason, such as the request been overflow from the request queue and etc.
+		 * @param url
+		 */
+		void onOverflowed(String url);
+		
+		/**
+		 * The loading process occurred some errors.
+		 * @param url
+		 */
+		void onError(String url);
 	}
 }

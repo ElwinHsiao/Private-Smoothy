@@ -1,5 +1,7 @@
 package norg.elwin.smoothy.imageloader;
 
+import android.content.res.Resources;
+import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 
 /**
@@ -10,8 +12,10 @@ import android.graphics.drawable.BitmapDrawable;
 public class ImageCacheLoader {
 	private ImageCache mCache;
 	private NetImageLoader mNetLoader;
+	private Resources mResources;
 	
-	public ImageCacheLoader() {
+	public ImageCacheLoader(Resources res) {
+		mResources = res;
 		mCache = new ImageCache();
 		mNetLoader = new NetImageLoader();
 	}
@@ -69,20 +73,21 @@ public class ImageCacheLoader {
 		mNetLoader.enqueueRequest(url, wrappedListener);
 	}
 	
-	class WrappedOnImageLoadListener implements OnImageLoadListener {
+	class WrappedOnImageLoadListener implements NetImageLoader.OnDownLoadListener {
 		private OnImageLoadListener listener;
 		public WrappedOnImageLoadListener(OnImageLoadListener listener) {
 			this.listener = listener;
 		}
 
 		@Override
-		public void onLoaded(String url, BitmapDrawable bitmapDrawable) {
+		public void onDownLoaded(String url, Bitmap bitmap) {
+			BitmapDrawable bitmapDrawable = new BitmapDrawable(mResources, bitmap);
 			addToCache(url, bitmapDrawable);
 			this.listener.onLoaded(url, bitmapDrawable);
 		}
 
 		@Override
-		public void onCanceled(String url) {
+		public void onOverflowed(String url) {
 			this.listener.onCanceled(url);
 		}
 
@@ -90,12 +95,36 @@ public class ImageCacheLoader {
 		public void onError(String url) {
 			this.listener.onError(url);
 		}
-		
+
 	}
 	
 	private void addToCache(String url, BitmapDrawable bitmapDrawable) {
 		mCache.addCache(url, bitmapDrawable);				// add to cache
 	}
 
-
+	/**
+	 * This listener use for notice the caller about the image loading message. 
+	 * @author Elwin
+	 *
+	 */
+	public interface OnImageLoadListener {
+		/**
+		 * When the image loaded.
+		 * @param url
+		 * @param bitmapDrawable
+		 */
+		void onLoaded(String url, BitmapDrawable bitmapDrawable);
+		
+		/**
+		 * This load request was canceled for some reason, such as the request been overflow from the request queue and etc.
+		 * @param url
+		 */
+		void onCanceled(String url);
+		
+		/**
+		 * The loading process occurred some errors.
+		 * @param url
+		 */
+		void onError(String url);
+	}
 }

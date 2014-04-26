@@ -58,6 +58,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 	}
 
 	private OnHeaderInfoListener mOnHeaderInfoListener;
+	private HeadersLoadTask mLastHeadersLoadTask;
     private void startTransform(String keyword) {
 		if (mOnHeaderInfoListener == null) {
 			mOnHeaderInfoListener = new OnHeaderInfoListener() {
@@ -82,7 +83,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
 			};
 		}
 		
-		new HeadersLoadTask(mOnHeaderInfoListener).execute(keyword);
+		if (mLastHeadersLoadTask != null) {
+			mLastHeadersLoadTask.cancel(true);
+		}
+		mLastHeadersLoadTask = new HeadersLoadTask(mOnHeaderInfoListener);
+		mLastHeadersLoadTask.execute(keyword);
 	}
 
 	

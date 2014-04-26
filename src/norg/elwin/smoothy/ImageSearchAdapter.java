@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import norg.elwin.smoothy.imageloader.ImageResolver;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -19,16 +20,22 @@ public class ImageSearchAdapter extends BaseAdapter {
 	
 	private List<HeaderInfo> data;
 	private Context mContext;
-	private Bitmap mProxyBitmap;
+	private ImageResolver mImageResolver;
+
+//	private Bitmap mProxyBitmap;
 	
 	public ImageSearchAdapter(Context context) {
 		mContext = context;
-		mProxyBitmap = BitmapFactory.decodeResource(context.getResources(), R.drawable.image_stub);
+		mImageResolver = new ImageResolver(context);
+//		mProxyBitmap = BitmapFactory.decodeResource(context.getResources(), R.drawable.image_stub);
 	}
 
 	public void updateData(List<HeaderInfo> data) {
 		this.data = data;
-		notifyDataSetChanged();
+		if (this.data == null) {
+			this.data = new LinkedList<HeaderInfo>();
+		}
+		notifyDataSetInvalidated();
 	}
 	
 	public void addData(HeaderInfo item) {
@@ -57,7 +64,7 @@ public class ImageSearchAdapter extends BaseAdapter {
 
 	@Override
 	public View getView(int position, View convertView, ViewGroup parent) {
-		Utils.logd(TAG, "in getView, postion=" + position);
+//		Utils.logd(TAG, "in getView, postion=" + position);
 		View view = convertView;
 		if (view == null) {
 			view = LayoutInflater.from(mContext).inflate(R.layout.list_item, null);
@@ -78,10 +85,14 @@ public class ImageSearchAdapter extends BaseAdapter {
 
 
 	private void loadImage(ImageView imageView, String url) {
-		ProxyDrawable drawable = new ProxyDrawable(mContext.getResources(), mProxyBitmap, imageView);
-		imageView.setImageDrawable(drawable);
-		drawable.load(url);
+		mImageResolver.resolveImage(imageView, url);
 	}
+
+//	private void loadImage2(ImageView imageView, String url) {
+//		ProxyDrawable drawable = new ProxyDrawable(mContext.getResources(), mProxyBitmap, imageView);
+//		imageView.setImageDrawable(drawable);
+//		drawable.load(url);
+//	}
 
 	/*test-mode*/private void computeTime() {
 		LinkedList<String> linkedList = new LinkedList<String>();

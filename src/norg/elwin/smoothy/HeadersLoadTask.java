@@ -14,7 +14,8 @@ public class HeadersLoadTask extends AsyncTask<String, HeaderInfo, List<HeaderIn
 	private static final String TAG = "HeadersLoadTask";
 	private OnHeaderInfoListener mOnHeaderInfoListener;
 	private BaiduApiParser mBaiduApiParser;
-	
+	private boolean mIsCancelled;
+
 	public HeadersLoadTask(OnHeaderInfoListener listener) {
 		mOnHeaderInfoListener = listener;
 		mBaiduApiParser = new BaiduApiParser();
@@ -33,13 +34,25 @@ public class HeadersLoadTask extends AsyncTask<String, HeaderInfo, List<HeaderIn
 	
 	@Override
 	protected void onProgressUpdate(HeaderInfo... values) {
+		if (mIsCancelled) {
+			return;
+		}
 		mOnHeaderInfoListener.OnHeaderInfo(values[0]);
 	};
 	
 	@Override
 	protected void onPostExecute(List<HeaderInfo> result) {
+		if (mIsCancelled) {
+			return;
+		}
 		mOnHeaderInfoListener.onFinish();
 	};
+	
+	@Override
+	protected void onCancelled() {
+		Utils.logd(TAG, "Task was cancel, result:" + isCancelled());
+		mIsCancelled = true;
+	}
 
 	
 	class BaiduApiParser {

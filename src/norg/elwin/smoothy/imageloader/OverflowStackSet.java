@@ -54,6 +54,9 @@ class OverflowStackSet<E> {
 	}
 
 	public E popLocked() {
+		if (innerList.size() == 0) {
+			return null;
+		}
 		E result = innerList.pop();
 		return result;
 	}
