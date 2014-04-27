@@ -153,6 +153,10 @@ public class StackHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, 
     	return youngest;
     }
     
+    public Entry<K, V> peek() {
+    	return youngest();
+    }
+    
     /**
      * Return The item recently accessed.
      * @return The item recently accessed.

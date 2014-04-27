@@ -1,9 +1,13 @@
 package norg.elwin.smoothy.imageloader;
 
+import java.util.AbstractQueue;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+
+import android.os.AsyncTask;
 
 /**
  * This collection has the flow features:
@@ -14,100 +18,34 @@ import java.util.concurrent.TimeUnit;
  *
  * @param <E>
  */
-public class SpillStackSet<E> implements BlockingQueue<E>{
+public class SpillStackSet<E> extends AbstractQueue<E> implements BlockingQueue<E> {
 
 	/**
 	 * The fix size.
 	 */
 	private final int mCapacity;
+	private StackHashMap<E, Object> mStackHashMap;
 
 	public SpillStackSet(int capacity) {
 //		super(capacity);
 		mCapacity = capacity;
+		mStackHashMap = new StackHashMap<E, Object>(capacity);
+	}
+	
+	/**
+	 * An extra operator 
+	 * @param e
+	 * @return
+	 */
+	public E push(E e) {
+		Entry<E, Object> entry = mStackHashMap.push(e, this);
+		return entry == null ? null : entry.getKey();
 	}
 
-	@Override
-	public E remove() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public E poll() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public E element() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public E peek() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public boolean addAll(Collection<? extends E> collection) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public boolean containsAll(Collection<?> collection) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public Iterator<E> iterator() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public boolean removeAll(Collection<?> collection) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public boolean retainAll(Collection<?> collection) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public Object[] toArray() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public <T> T[] toArray(T[] array) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public boolean add(E e) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public boolean offer(E e) {
-		// TODO Auto-generated method stub
-		return false;
-	}
 
 	@Override
 	public void put(E e) throws InterruptedException {
 		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
@@ -136,12 +74,6 @@ public class SpillStackSet<E> implements BlockingQueue<E>{
 	}
 
 	@Override
-	public boolean contains(Object o) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
 	public int drainTo(Collection<? super E> c) {
 		// TODO Auto-generated method stub
 		return 0;
@@ -152,50 +84,36 @@ public class SpillStackSet<E> implements BlockingQueue<E>{
 		// TODO Auto-generated method stub
 		return 0;
 	}
+	
+	/*****************************-duplicated method-*****************************/
 
 	@Override
-	public void clear() {
-		// TODO Auto-generated method stub
-		
+	public boolean offer(E e) {
+		mStackHashMap.push(e, this);
+		return true;
 	}
 
 	@Override
-	public boolean isEmpty() {
-		// TODO Auto-generated method stub
-		return false;
+	public E poll() {
+		Entry<E, Object> entry = mStackHashMap.pop();
+		return entry == null ? null : entry.getKey();
+	}
+
+	@Override
+	public E peek() {
+		Entry<E, Object> entry = mStackHashMap.peek();
+		return entry == null ? null : entry.getKey();
+	}
+
+	@Override
+	public Iterator<E> iterator() {
+		return mStackHashMap.keySet().iterator();
 	}
 
 	@Override
 	public int size() {
-		// TODO Auto-generated method stub
-		return 0;
+		return mStackHashMap.size();
 	}
 
-	@Override
-	public boolean remove(Object o) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-	
-//	/**
-//	 * 
-//	 * @param item
-//	 * @return The overflowed item if has.
-//	 */
-//	public E enqueue(E item) {
-//		Assert.assertNotNull(item);
-//		
-//		E spillItem = null;
-//		int size = size();
-//		int remain = mCapacity - size;
-//		boolean isContain = remove(item);
-//		if (!isContain && remain == 0) {
-//			spillItem = pollLast();
-//		}
-//		offerFirst(item);
-//		
-//		return spillItem;
-//	}
-	
-	
+
 }
