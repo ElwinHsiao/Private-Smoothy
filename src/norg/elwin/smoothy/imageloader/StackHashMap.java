@@ -9,15 +9,17 @@ import java.io.Serializable;
 import java.util.AbstractCollection;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+
+import norg.elwin.smoothy.Utils;
+
+import junit.framework.Assert;
 
 
 /**
@@ -45,7 +47,9 @@ import java.util.Set;
  * @param <K> the type of keys maintained by this map
  * @param <V> the type of mapped values
  */
-public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Serializable {
+public class StackHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Serializable {
+	private static final String TAG = "StackHashMap";
+
     /**
      * Min capacity (other than zero) for a HashMap. Must be a power of two
      * greater than 1 (and less than 1 << 30).
@@ -78,6 +82,7 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
      */
     static final float DEFAULT_LOAD_FACTOR = .75F;
 
+
     /**
      * The hash table. If this hash map contains a mapping for null, it is
      * not represented this hash table.
@@ -107,24 +112,69 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
      * above.
      */
     private transient int threshold;
+    
+    /** Maximum number of items in the stack */
+    private final int capacity;
 
     // Views - lazily initialized
     private transient Set<K> keySet;
     private transient Set<Entry<K, V>> entrySet;
     private transient Collection<V> values;
+    
+    /**
+     * Push the item into the stack.
+     * @param key
+     * @param value
+     * @return The overflowed item if has.
+     */
+    public Entry<K, V> push(K key, V value) {
+		Assert.assertNotNull(key);
+		
+		Entry<K, V> spillItem = null;
+		int remain = capacity - size;
+		boolean isContain = containsKey(key);
+		Utils.logd(TAG, "in push: key=" + key + " isContain=" + isContain + " capacit=" + capacity + " size=" + size);
+		if (!isContain && remain == 0) {
+			spillItem = eldest();
+			remove(spillItem.getKey());
+		}
+		put(key, value);
+		
+		return spillItem;
+    }
+    
+    /**
+     * Pop a item from the stack.
+     * @return
+     */
+    public Entry<K, V> pop() {
+    	Entry<K, V> youngest = youngest();
+    	remove(youngest == null ? null : youngest.getKey());
+    	return youngest;
+    }
+    
+    /**
+     * Return The item recently accessed.
+     * @return The item recently accessed.
+     */
+    public Entry<K, V> youngest() {
+    	LinkedEntry<K, V> entry = header.prv;
+    	return entry != header ? entry : null;
+    }
+    
 
     /**
      * Constructs a new empty {@code HashMap} instance.
      */
-    @SuppressWarnings("unchecked")
-    public MyHashMap() {
-        table = (HashMapEntry<K, V>[]) EMPTY_TABLE;
-        threshold = -1; // Forces first put invocation to replace EMPTY_TABLE
-        
-        // linked 
-        init();
-        accessOrder = false;
-    }
+//    @SuppressWarnings("unchecked")
+//    public MyHashStack() {
+//        table = (HashMapEntry<K, V>[]) EMPTY_TABLE;
+//        threshold = -1; // Forces first put invocation to replace EMPTY_TABLE
+//        
+//        // linked 
+//        init();
+//        accessOrder = false;
+//    }
 
     /**
      * Constructs a new {@code HashMap} instance with the specified capacity.
@@ -134,7 +184,7 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
      * @throws IllegalArgumentException
      *                when the capacity is less than zero.
      */
-    public MyHashMap(int capacity) {
+    public StackHashMap(int capacity) {
 //        if (capacity < 0) {
 //            throw new IllegalArgumentException("Capacity: " + capacity);
 //        }
@@ -170,7 +220,7 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
      *                when the capacity is less than zero or the load factor is
      *                less or equal to zero or NaN.
      */
-    public MyHashMap(int capacity, float loadFactor) {
+    public StackHashMap(int capacity, float loadFactor) {
 //        this(capacity);
 //
 //        if (loadFactor <= 0 || Float.isNaN(loadFactor)) {
@@ -182,7 +232,7 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
 //         * a load factor of 3/4. This simplifies the code and generally
 //         * improves performance.
 //         */
-    	this(capacity, loadFactor, false);
+    	this(capacity, loadFactor, true);
     }
     
     /**
@@ -202,8 +252,7 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
      *             when the capacity is less than zero or the load factor is
      *             less or equal to zero.
      */
-    public MyHashMap(
-            int capacity, float loadFactor, boolean accessOrder) {
+    public StackHashMap(int capacity, float loadFactor, boolean accessOrder) {
         if (capacity < 0) {
             throw new IllegalArgumentException("Capacity: " + capacity);
         }
@@ -214,30 +263,31 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
             table = tab;
             threshold = -1; // Forces first put() to replace EMPTY_TABLE
         } else {
-            if (capacity < MINIMUM_CAPACITY) {
-                capacity = MINIMUM_CAPACITY;
-            } else if (capacity > MAXIMUM_CAPACITY) {
-                capacity = MAXIMUM_CAPACITY;
-            } else {
-                capacity = roundUpToPowerOfTwo(capacity);
-            }
+//            if (capacity < MINIMUM_CAPACITY) {
+//                capacity = MINIMUM_CAPACITY;
+//            } else if (capacity > MAXIMUM_CAPACITY) {
+//                capacity = MAXIMUM_CAPACITY;
+//            } else {
+//                capacity = roundUpToPowerOfTwo(capacity);
+//            }
             makeTable(capacity);
         }
 
 
         
-      if (loadFactor <= 0 || Float.isNaN(loadFactor)) {
-          throw new IllegalArgumentException("Load factor: " + loadFactor);
-      }
+//        if (loadFactor <= 0 || Float.isNaN(loadFactor)) {
+//            throw new IllegalArgumentException("Load factor: " + loadFactor);
+//        }
 
-      /*
-       * Note that this implementation ignores loadFactor; it always uses
-       * a load factor of 3/4. This simplifies the code and generally
-       * improves performance.
-       */
+        /*
+         * Note that this implementation ignores loadFactor; it always uses
+         * a load factor of 3/4. This simplifies the code and generally
+         * improves performance.
+         */
       
         init();
         this.accessOrder = accessOrder;
+        this.capacity = capacity;
     }
 
     /**
@@ -247,7 +297,7 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
      * @param map
      *            the mappings to add.
      */
-    public MyHashMap(Map<? extends K, ? extends V> map) {
+    public StackHashMap(Map<? extends K, ? extends V> map) {
         this(capacityForInitSize(map.size()));
         constructorPutAll(map);
     }
@@ -289,9 +339,9 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
          * This could be made more efficient. It unnecessarily hashes all of
          * the elements in the map.
          */
-        MyHashMap<K, V> result;
+        StackHashMap<K, V> result;
         try {
-            result = (MyHashMap<K, V>) super.clone();
+            result = (StackHashMap<K, V>) super.clone();
         } catch (CloneNotSupportedException e) {
             throw new AssertionError(e);
         }
@@ -452,7 +502,8 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
      * @return the value of any previous mapping with the specified key or
      *         {@code null} if there was no such mapping.
      */
-    @Override public V put(K key, V value) {
+    @Override 
+    public V put(K key, V value) {
         if (key == null) {
             return putValueForNullKey(value);
         }
@@ -461,7 +512,7 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
         HashMapEntry<K, V>[] tab = table;
         int index = hash & (tab.length - 1);
         for (HashMapEntry<K, V> e = tab[index]; e != null; e = e.next) {
-            if (e.hash == hash && key.equals(e.key)) {
+            if (e.hash == hash && key.equals(e.key)) {	// Already has this key, replace the value.
                 preModify(e);
                 V oldValue = e.value;
                 e.value = value;
@@ -471,10 +522,11 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
 
         // No entry for (non-null) key is present; create one
         modCount++;
-        if (size++ > threshold) {
-            tab = doubleCapacity();
-            index = hash & (tab.length - 1);
-        }
+        size++;
+//        if (size-1 > threshold) {
+//            tab = doubleCapacity();
+//            index = hash & (tab.length - 1);
+//        }
         addNewEntry(key, value, hash, index);
         return null;
     }
@@ -684,7 +736,7 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
      * @return the value of the removed mapping or {@code null} if no mapping
      *         for the specified key was found.
      */
-    @Override public V remove(Object key) {
+    @Override public final V remove(Object key) {
         if (key == null) {
             return removeNullKey();
         }
@@ -822,8 +874,8 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
                 return false;
             }
             Entry<?, ?> e = (Entry<?, ?>) o;
-            return MyHashMap.equals(e.getKey(), key)
-                    && MyHashMap.equals(e.getValue(), value);
+            return StackHashMap.equals(e.getKey(), key)
+                    && StackHashMap.equals(e.getValue(), value);
         }
 
         @Override public final int hashCode() {
@@ -878,7 +930,7 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
                 throw new IllegalStateException();
             if (modCount != expectedModCount)
                 throw new ConcurrentModificationException();
-            MyHashMap.this.remove(lastEntryReturned.key);
+            StackHashMap.this.remove(lastEntryReturned.key);
             lastEntryReturned = null;
             expectedModCount = modCount;
         }
@@ -979,11 +1031,11 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
         }
         public boolean remove(Object o) {
             int oldSize = size;
-            MyHashMap.this.remove(o);
+            StackHashMap.this.remove(o);
             return size != oldSize;
         }
         public void clear() {
-            MyHashMap.this.clear();
+            StackHashMap.this.clear();
         }
     }
 
@@ -1001,7 +1053,7 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
             return containsValue(o);
         }
         public void clear() {
-            MyHashMap.this.clear();
+            StackHashMap.this.clear();
         }
     }
 
@@ -1028,7 +1080,7 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
             return size == 0;
         }
         public void clear() {
-            MyHashMap.this.clear();
+            StackHashMap.this.clear();
         }
     }
 
@@ -1164,7 +1216,7 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
      * as the newly created entry, the "next" link would become invalid, and
      * the resulting hash table corrupt.
      */
-    void addNewEntry(K key, V value, int hash, int index) {
+    protected void addNewEntry(K key, V value, int hash, int index) {
         LinkedEntry<K, V> header = this.header;
 
         // Remove eldest entry if instructed to do so.
@@ -1180,7 +1232,7 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
         table[index] = oldTail.nxt = header.prv = newTail;
     }
 
-    void addNewEntryForNullKey(V value) {
+    protected void addNewEntryForNullKey(V value) {
         LinkedEntry<K, V> header = this.header;
 
         // Remove eldest entry if instructed to do so.
@@ -1199,7 +1251,7 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
     /**
      * As above, but without eviction.
      */
-    HashMapEntry<K, V> constructorNewEntry(
+    protected HashMapEntry<K, V> constructorNewEntry(
             K key, V value, int hash, HashMapEntry<K, V> next) {
         LinkedEntry<K, V> header = this.header;
         LinkedEntry<K, V> oldTail = header.prv;
@@ -1216,7 +1268,8 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
      * @return the value of the mapping with the specified key, or {@code null}
      *         if no mapping for the specified key is found.
      */
-    @Override public V get(Object key) {
+    @Override 
+    public V get(Object key) {
         /*
          * This method is overridden to eliminate the need for a polymorphic
          * invocation in superclass at the expense of code duplication.
@@ -1264,13 +1317,13 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
         modCount++;
     }
 
-    void preModify(HashMapEntry<K, V> e) {
+    protected void preModify(HashMapEntry<K, V> e) {
         if (accessOrder) {
             makeTail((LinkedEntry<K, V>) e);
         }
     }
 
-    void postRemove(HashMapEntry<K, V> e) {
+    protected void postRemove(HashMapEntry<K, V> e) {
         LinkedEntry<K, V> le = (LinkedEntry<K, V>) e;
         le.prv.nxt = le.nxt;
         le.nxt.prv = le.prv;
@@ -1340,7 +1393,7 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
                 throw new ConcurrentModificationException();
             if (lastReturned == null)
                 throw new IllegalStateException();
-            MyHashMap.this.remove(lastReturned.key);
+            StackHashMap.this.remove(lastReturned.key);
             lastReturned = null;
             expectedModCount = modCount;
         }
@@ -1360,13 +1413,13 @@ public class MyHashMap<K, V> extends AbstractMap<K, V> implements Cloneable, Ser
     }
 
     // Override view iterator methods to generate correct iteration order
-    Iterator<K> newKeyIterator() {
+    protected Iterator<K> newKeyIterator() {
         return new KeyIterator();
     }
-    Iterator<V> newValueIterator() {
+    protected Iterator<V> newValueIterator() {
         return new ValueIterator();
     }
-    Iterator<Map.Entry<K, V>> newEntryIterator() {
+    protected Iterator<Map.Entry<K, V>> newEntryIterator() {
         return new EntryIterator();
     }
 
