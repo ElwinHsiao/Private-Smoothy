@@ -68,6 +68,11 @@ public class HeadersLoadTask extends AsyncTask<String, HeaderInfo, List<HeaderIn
 		}
 		
 		public void parse(InputStream is) {
+			if (is == null) {
+				Log.e(TAG, "Download error!");
+				return;
+			}
+			
 			try {
 				parseInner(is);
 			} catch (IOException e) {
